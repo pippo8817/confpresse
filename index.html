@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Configuratore Presse – Ultra Responsive con Bootstrap</title>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css"
+  >
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+</head>
+<body>
+
+<div class="container-fluid py-4">
+  <h1 class="text-center mb-4">Configuratore Presse (Responsive + Intervalli vicini)</h1>
+  
+  <!-- RIGA PRINCIPALE: Form (col-12 col-lg-8) + Immagini piccole (col-12 col-lg-4) -->
+  <div class="row g-4">
+    <!-- COLONNA SINISTRA: Form -->
+    <div class="col-12 col-lg-8">
+      <form id="configForm">
+        
+        <!-- Passaggio colonne -->
+        <div class="mb-3">
+          <label for="colonneInput" class="form-label">Passaggio colonne (es. 370x300)</label>
+          <input
+            type="text"
+            class="form-control"
+            id="colonneInput"
+            placeholder="Inserisci passaggio colonne (HxV)"
+            onchange="selezionaColonne()"
+          >
+        </div>
+
+        <!-- Div per proporre intervalli vicini -->
+        <div id="divColonneVicini" class="mb-3 d-none">
+          <label for="colonneViciniSelect" class="form-label">
+            Non trovato. Seleziona un intervallo vicino:
+          </label>
+          <select
+            id="colonneViciniSelect"
+            class="form-select"
+            onchange="onSelezionaColonneVicino()"
+          >
+            <option value="">Scegli un passaggio colonne simile</option>
+          </select>
+        </div>
+
+        <!-- Selettore grammi -->
+        <div class="mb-3">
+          <label for="grammiSelect" class="form-label">
+            Capacità effettiva iniezione (grammi)
+          </label>
+          <select
+            id="grammiSelect"
+            class="form-select"
+            onchange="popolaUnita()"
+            disabled
+          >
+            <option value="">Seleziona la capacità effettiva iniezione</option>
+          </select>
+        </div>
+
+        <!-- Selettore unità iniezione -->
+        <div class="mb-3">
+          <label for="unitaSelect" class="form-label">Unità di iniezione</label>
+          <select
+            id="unitaSelect"
+            class="form-select"
+            onchange="popolaTonnellaggi(); mostraImgIniezione()"
+            disabled
+          >
+            <option value="">Seleziona un'unità di iniezione</option>
+          </select>
+        </div>
+
+        <!-- Selettore tonnellaggio -->
+        <div class="mb-3">
+          <label for="tonSelect" class="form-label">Tonnellaggio</label>
+          <select
+            id="tonSelect"
+            class="form-select"
+            onchange="popolaModelli(); mostraImgTon()"
+            disabled
+          >
+            <option value="">Seleziona un tonnellaggio</option>
+          </select>
+        </div>
+
+        <!-- Selettore modello -->
+        <div class="mb-3">
+          <label for="modelloSelect" class="form-label">Modello</label>
+          <select
+            id="modelloSelect"
+            class="form-select"
+            disabled
+          >
+            <option value="">Seleziona il modello</option>
+          </select>
+        </div>
+
+        <!-- Pulsanti -->
+        <div class="d-flex gap-3">
+          <button
+            type="button"
+            class="btn btn-primary"
+            onclick="configuraPressa()"
+          >
+            Configura
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            onclick="azzeraFiltri()"
+          >
+            Azzera filtri
+          </button>
+        </div>
+      </form>
+    </div>
+    
+    <!-- COLONNA DESTRA: Immagini piccole -->
+    <div class="col-12 col-lg-4">
+      <!-- RIGA con 2 col per prime 2 immagini: chiusura e iniezione -->
+      <div class="row g-3">
+        <div class="col-6">
+          <!-- Immagine 1: gruppo chiusura -->
+          <img
+            id="imgChiusura"
+            src=""
+            alt="Gruppo chiusura"
+            class="img-fluid shadow rounded d-none"
+            style="max-width:100%; height:auto;"
+          />
+        </div>
+        <div class="col-6">
+          <!-- Immagine 2: iniezione -->
+          <img
+            id="imgIniezione"
+            src=""
+            alt="Unità iniezione"
+            class="img-fluid shadow rounded d-none"
+            style="max-width:100%; height:auto;"
+          />
+        </div>
+        <!-- RIGA successiva per la terza immagine (ton) sotto le prime due -->
+        <div class="col-12">
+          <!-- Immagine 3: tonnellaggio -->
+          <img
+            id="imgTon"
+            src=""
+            alt="Tonnellaggio"
+            class="img-fluid shadow rounded d-none"
+            style="max-width:75%; max-height:75%;"
+          />
+        </div>
+      </div>
+    </div>
+  </div><!-- fine row g-4 -->
+
+  <!-- SECONDA ROW: Riepilogo e immagine finale fianco a fianco -->
+  <div id="finalContainer" class="row mt-4 d-none">
+    <!-- Colonna col-12 col-md-6 per il riepilogo -->
+    <div class="col-12 col-md-6">
+      <div id="risultati"></div>
+    </div>
+    <!-- Colonna col-12 col-md-6 per l'immagine finale -->
+    <div class="col-12 col-md-6 d-flex align-items-center justify-content-center">
+      <img
+        id="finalModelImage"
+        src=""
+        alt="Modello configurato"
+        class="img-fluid shadow rounded"
+        style="max-width:500px; height:auto;"
+      />
+    </div>
+  </div>
+</div><!-- fine container-fluid -->
+
+<script>
+// ================================
+// 1) Array con TUTTI i passaggi colonne e relative entries
+// ================================
+const intervalli = [
+  {
+    colonne: "370x300",
+    entries: [
+      { modello:"ibrida sp 50",  grammi:"20-26",   unitaIniezione:50,  ton:[50] },
+      { modello:"ibrida sp 50",  grammi:"67-97",   unitaIniezione:180, ton:[50,80] },
+      { modello:"ibrida sp 50",  grammi:"106-146", unitaIniezione:280, ton:[50,80] },
+
+      { modello:"ibrida h-he 50", grammi:"20-26",   unitaIniezione:50,  ton:[50] },
+      { modello:"ibrida h-he 50", grammi:"67-97",   unitaIniezione:180, ton:[50,80] },
+      { modello:"ibrida h-he 50", grammi:"106-146", unitaIniezione:280, ton:[50,80] },
+
+      { modello:"elettryka 50",  grammi:"52-66", unitaIniezione:140, ton:[50] },
+      { modello:"elettryka 50",  grammi:"66-96", unitaIniezione:190, ton:[50] }
+    ]
+  },
+  {
+    colonne: "410x370",
+    entries: [
+      { modello:"ibrida sp 80", grammi:"155-202", unitaIniezione:360, ton:[50,80,120] },
+      { modello:"ibrida sp 80", grammi:"226-287", unitaIniezione:500, ton:[80,120,160,180] },
+
+      { modello:"ibrida h-he 80", grammi:"155-202", unitaIniezione:360, ton:[50,80,120] },
+      { modello:"ibrida h-he 80", grammi:"226-287", unitaIniezione:500, ton:[80,120,160,180] },
+
+      { modello:"elettryka 80", grammi:"52-66", unitaIniezione:140, ton:[80] },
+      { modello:"elettryka 80", grammi:"66-96", unitaIniezione:190, ton:[80] }
+    ]
+  },
+  {
+    colonne: "470x470",
+    entries: [
+      { modello:"ibrida sp 120", grammi:"226-287", unitaIniezione:500, ton:[80,120,160,180] },
+      { modello:"ibrida sp 120", grammi:"325-400", unitaIniezione:700, ton:[80,120,160,180] },
+
+      { modello:"ibrida h-he 120", grammi:"226-287", unitaIniezione:500, ton:[80,120,160,180] },
+      { modello:"ibrida h-he 120", grammi:"325-400", unitaIniezione:700, ton:[80,120,160,180] },
+
+      // Corretto: "66-96" => unita=190
+      { modello:"elettryka 120", grammi:"66-96",   unitaIniezione:190, ton:[120] },
+      { modello:"elettryka 120", grammi:"125-170", unitaIniezione:190, ton:[120] }
+    ]
+  },
+  {
+    colonne: "510x460",
+    entries: [
+      { modello:"ibrida sp 160", grammi:"325-400", unitaIniezione:700,  ton:[80,120,160,180] },
+      { modello:"ibrida sp 160", grammi:"400-485", unitaIniezione:860,  ton:[120,160,180,220] },
+      { modello:"ibrida sp 180", grammi:"400-485", unitaIniezione:860,  ton:[120,160,180,220] },
+      { modello:"ibrida sp 180", grammi:"560-670", unitaIniezione:1200, ton:[160,180,220,280] },
+
+      { modello:"ibrida h-he 160", grammi:"325-400", unitaIniezione:700,  ton:[80,120,160,180] },
+      { modello:"ibrida h-he 160", grammi:"400-485", unitaIniezione:860,  ton:[120,160,180,220] },
+      { modello:"ibrida h-he 180", grammi:"400-485", unitaIniezione:860,  ton:[120,160,180,220] },
+      { modello:"ibrida h-he 180", grammi:"560-670", unitaIniezione:1200, ton:[160,180,220,280] },
+
+      { modello:"elettryka 160", grammi:"125-170", unitaIniezione:350, ton:[160] },
+      { modello:"elettryka 160", grammi:"195-250", unitaIniezione:450, ton:[160] },
+      { modello:"elettryka 180", grammi:"195-250", unitaIniezione:450, ton:[180] },
+      { modello:"elettryka 180", grammi:"260-330", unitaIniezione:630, ton:[180] }
+    ]
+  },
+  {
+    colonne: "560x560",
+    entries: [
+      { modello:"ibrida sp 220", grammi:"560-670", unitaIniezione:1200, ton:[160,180,220,280] },
+      { modello:"ibrida sp 220", grammi:"670-785", unitaIniezione:1350, ton:[180,220,280,350] },
+
+      { modello:"ibrida h-he 220", grammi:"560-670", unitaIniezione:1200, ton:[160,180,220,280] },
+      { modello:"ibrida h-he 220", grammi:"670-785", unitaIniezione:1350, ton:[180,220,280,350] },
+
+      { modello:"elettryka 220", grammi:"260-330", unitaIniezione:630, ton:[220] },
+      { modello:"elettryka 220", grammi:"360-440", unitaIniezione:860, ton:[220] }
+    ]
+  },
+  {
+    colonne: "630x630",
+    entries: [
+      { modello:"ibrida sp 280", grammi:"670-785",   unitaIniezione:1350, ton:[180,220,280,350] },
+      { modello:"ibrida sp 280", grammi:"1005-1165", unitaIniezione:2000, ton:[220,280,350,400] },
+
+      { modello:"ibrida h-he 280", grammi:"670-785",   unitaIniezione:1350, ton:[180,220,280,350] },
+      { modello:"ibrida h-he 280", grammi:"1005-1165", unitaIniezione:2000, ton:[220,280,350,400] },
+
+      { modello:"elettryka 280", grammi:"360-440", unitaIniezione:860,  ton:[280] },
+      { modello:"elettryka 280", grammi:"500-602", unitaIniezione:1150, ton:[280] }
+    ]
+  },
+  {
+    colonne: "720x720",
+    entries: [
+      { modello:"ibrida sp 350", grammi:"1005-1165", unitaIniezione:2000, ton:[220,280,350,400] },
+      { modello:"ibrida sp 350", grammi:"1350-1550", unitaIniezione:2800, ton:[280,350,400,500] },
+
+      { modello:"ibrida h-he 350", grammi:"1005-1165", unitaIniezione:2000, ton:[220,280,350,400] },
+      { modello:"ibrida h-he 350", grammi:"1350-1550", unitaIniezione:2800, ton:[280,350,400,500] },
+
+      { modello:"elettryka 350", grammi:"500-602", unitaIniezione:1150, ton:[350] },
+      { modello:"elettryka 350", grammi:"602-718", unitaIniezione:1350, ton:[350] }
+    ]
+  },
+  {
+    colonne: "760x710",
+    entries: [
+      { modello:"ibrida sp 400", grammi:"1350-1550", unitaIniezione:2800, ton:[280,350,400,500] },
+      { modello:"ibrida sp 400", grammi:"1730-2230", unitaIniezione:4050, ton:[400,500,650,800] },
+
+      { modello:"ibrida h-he 400", grammi:"1350-1550", unitaIniezione:2800, ton:[280,350,400,500] },
+      { modello:"ibrida h-he 400", grammi:"1730-2230", unitaIniezione:4050, ton:[400,500,650,800] }
+    ]
+  },
+  {
+    colonne: "810x810",
+    entries: [
+      { modello:"ibrida sp 500", grammi:"1730-2230", unitaIniezione:4050, ton:[400,500,650,800] },
+      { modello:"ibrida sp 500", grammi:"2346-2632", unitaIniezione:5050, ton:[400,500,650,800] },
+
+      { modello:"ibrida h-he 500", grammi:"1730-2230", unitaIniezione:4050, ton:[400,500,650,800] },
+      { modello:"ibrida h-he 500", grammi:"2346-2632", unitaIniezione:5050, ton:[400,500,650,800] }
+    ]
+  },
+  {
+    colonne: "960x920",
+    entries: [
+      { modello:"ibrida sp 650", grammi:"2346-2632", unitaIniezione:5050, ton:[400,500,650,800] },
+      { modello:"ibrida sp 650", grammi:"3082-3804", unitaIniezione:7200, ton:[500,650,800,1100] },
+
+      { modello:"ibrida h-he 650", grammi:"2346-2632", unitaIniezione:5050, ton:[400,500,650,800] },
+      { modello:"ibrida h-he 650", grammi:"3082-3804", unitaIniezione:7200, ton:[500,650,800,1000] }
+    ]
+  },
+  {
+    colonne: "1120x1120",
+    entries: [
+      { modello:"ibrida sp 800", grammi:"3082-3804", unitaIniezione:7200, ton:[500,650,800,1100] },
+      { modello:"ibrida sp 800", grammi:"3804-4195", unitaIniezione:7200, ton:[500,650,800,1100] },
+
+      { modello:"ibrida h-he 800", grammi:"3082-3804", unitaIniezione:7200, ton:[500,650,800,1000] },
+      { modello:"ibrida h-he 800", grammi:"3804-4195", unitaIniezione:7200, ton:[500,650,800,1000] }
+    ]
+  },
+  {
+    colonne: "1250x1020",
+    entries: [
+      { modello:"ibrida 1000", grammi:"3082-4195", unitaIniezione:7200, ton:[500,650,800,1000] },
+      { modello:"ibrida 1000", grammi:"3700-6550", unitaIniezione:9300, ton:[800,1000,1200,1500] }
+    ]
+  },
+  {
+    colonne: "1320x1120",
+    entries: [
+      { modello:"ibrida 1200", grammi:"5155-8520", unitaIniezione:12400, ton:[1000,1200,1500,1800] }
+    ]
+  },
+  {
+    colonne: "1520x1310",
+    entries: [
+      { modello:"ibrida 1500", grammi:"7575-11820", unitaIniezione:16300, ton:[1200,1500,1800,2200] }
+    ]
+  },
+  {
+    colonne: "1610x1400",
+    entries: [
+      { modello:"ibrida 1800", grammi:"9085-14200", unitaIniezione:20700, ton:[1500,1800,2200,2600] }
+    ]
+  },
+  {
+    colonne: "1830x1675",
+    entries: [
+      { modello:"ibrida 2200", grammi:"10820-17160", unitaIniezione:25600, ton:[1800,2200,2600,3200] }
+    ]
+  },
+  {
+    colonne: "2034x2034",
+    entries: [
+      { modello:"ibrida 2600", grammi:"21020-29090", unitaIniezione:44500, ton:[2200,2600,3200] }
+    ]
+  },
+  {
+    colonne: "2360x2034",
+    entries: [
+      { modello:"ibrida 3200", grammi:"28900-39400", unitaIniezione:70000, ton:[2600,3200] }
+    ]
+  },
+
+  // sp/h duo
+  {
+    colonne: "1100x950",
+    entries: [
+      { modello:"sp/h duo 550", grammi:"1390-2296", unitaIniezione:3300, ton:[550] },
+      { modello:"sp/h duo 750", grammi:"2128-3320", unitaIniezione:5300, ton:[550,750,950] }
+    ]
+  },
+  {
+    colonne: "1300x1100",
+    entries: [
+      { modello:"sp/h duo 950",  grammi:"2990-4468", unitaIniezione:7100, ton:[750,950,1150] },
+      { modello:"sp/h duo 1150", grammi:"4060-5850", unitaIniezione:9600, ton:[950,1150,1450] }
+    ]
+  },
+  {
+    colonne: "1500x1300",
+    entries: [
+      { modello:"sp/h duo 1450", grammi:"6910-9410", unitaIniezione:15000, ton:[1150,1450] }
+    ]
+  },
+  {
+    colonne: "1700x1500",
+    entries: [
+      { modello:"sp/h duo 1750", grammi:"8735-11630", unitaIniezione:20000, ton:[1450,1750] }
+    ]
+  },
+  {
+    colonne: "1900x1700",
+    entries: [
+      { modello:"sp/h duo 2050", grammi:"11580-19140", unitaIniezione:30000, ton:[1750,2050] }
+    ]
+  }
+];
+
+// ================================
+// 2) Selezione passaggio colonne
+// ================================
+
+function selezionaColonne() {
+  const col = document.getElementById("colonneInput").value.trim();
+  const match = intervalli.find(obj => obj.colonne === col);
+
+  resetSelects();
+  mostraImgChiusura();  // immagine chiusura non appena utente scrive
+
+  if (!col) {
+    nascondiIntervalliVicini();
+    return;
+  }
+  if (!match) {
+    mostraIntervalliVicini(col);
+    return;
+  }
+  nascondiIntervalliVicini();
+  popolaGrammi(match);
+}
+
+function popolaGrammi(intervallo) {
+  const grammiSelect = document.getElementById("grammiSelect");
+  const allGrammi = [...new Set(intervallo.entries.map(e => e.grammi))];
+  allGrammi.forEach(g => {
+    const opt = document.createElement("option");
+    opt.value = g;
+    opt.textContent = g;
+    grammiSelect.appendChild(opt);
+  });
+  grammiSelect.disabled = false;
+}
+
+// Intervalli vicini
+function mostraIntervalliVicini(colInserito) {
+  const divVicini = document.getElementById("divColonneVicini");
+  const selectVicini = document.getElementById("colonneViciniSelect");
+  
+  selectVicini.innerHTML = "<option value=''>Scegli un passaggio colonne simile</option>";
+  const vicini = trovaIntervalliVicini(colInserito);
+  vicini.forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    selectVicini.appendChild(opt);
+  });
+  divVicini.classList.remove("d-none");
+}
+
+function onSelezionaColonneVicino() {
+  const sel = document.getElementById("colonneViciniSelect");
+  const chosen = sel.value;
+  if (!chosen) return;
+
+  document.getElementById("colonneInput").value = chosen;
+  selezionaColonne();
+}
+
+function nascondiIntervalliVicini() {
+  document.getElementById("divColonneVicini").classList.add("d-none");
+  document.getElementById("colonneViciniSelect").innerHTML =
+    "<option value=''>Scegli un passaggio colonne simile</option>";
+}
+
+// Calcola i 2 passaggi colonne più vicini
+function trovaIntervalliVicini(colInserito) {
+  const inputArr = parseColonne(colInserito);
+  if (!inputArr) return [];
+
+  const distanze = intervalli.map(obj => {
+    const cArr = parseColonne(obj.colonne);
+    if (!cArr) return { distanza:999999, col: obj.colonne };
+    const dx = cArr[0] - inputArr[0];
+    const dy = cArr[1] - inputArr[1];
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    return { distanza: dist, col: obj.colonne };
+  });
+  distanze.sort((a,b) => a.distanza - b.distanza);
+  return distanze.slice(0,2).map(d => d.col);
+}
+
+function parseColonne(str) {
+  const parts = str.split('x').map(p => parseInt(p.trim(),10));
+  if (parts.length!==2 || isNaN(parts[0]) || isNaN(parts[1])) return null;
+  return parts;
+}
+
+// ================================
+// 3) popolaUnita, popolaTonnellaggi, popolaModelli
+// ================================
+
+function popolaUnita() {
+  const col = document.getElementById("colonneInput").value.trim();
+  const grammi = document.getElementById("grammiSelect").value;
+  const match = intervalli.find(obj => obj.colonne === col);
+  if (!match) return;
+
+  const unitaSelect = document.getElementById("unitaSelect");
+  const tonSelect = document.getElementById("tonSelect");
+  const modSelect = document.getElementById("modelloSelect");
+
+  unitaSelect.innerHTML = "<option value=''>Seleziona un'unità di iniezione</option>";
+  unitaSelect.disabled = true;
+  tonSelect.innerHTML = "<option value=''>Seleziona un tonnellaggio</option>";
+  tonSelect.disabled = true;
+  modSelect.innerHTML = "<option value=''>Seleziona il modello</option>";
+  modSelect.disabled = true;
+
+  if (!grammi) return;
+
+  const filtered = match.entries.filter(e => e.grammi===grammi);
+  const allUnita = [...new Set(filtered.map(e => e.unitaIniezione))];
+  allUnita.forEach(u => {
+    const opt = document.createElement("option");
+    opt.value = u;
+    opt.textContent = `Unità ${u}`;
+    unitaSelect.appendChild(opt);
+  });
+  unitaSelect.disabled = false;
+}
+
+function popolaTonnellaggi() {
+  const col = document.getElementById("colonneInput").value.trim();
+  const grammi = document.getElementById("grammiSelect").value;
+  const unita = parseInt(document.getElementById("unitaSelect").value,10);
+  const match = intervalli.find(obj => obj.colonne === col);
+  if (!match) return;
+
+  const tonSelect = document.getElementById("tonSelect");
+  const modSelect = document.getElementById("modelloSelect");
+
+  tonSelect.innerHTML = "<option value=''>Seleziona un tonnellaggio</option>";
+  tonSelect.disabled = true;
+  modSelect.innerHTML = "<option value=''>Seleziona il modello</option>";
+  modSelect.disabled = true;
+
+  if (!grammi || !unita) return;
+
+  const filtered = match.entries.filter(e =>
+    e.grammi===grammi && e.unitaIniezione===unita
+  );
+  if (!filtered.length) return;
+
+  const allTon = new Set();
+  filtered.forEach(f => f.ton.forEach(t => allTon.add(t)));
+
+  [...allTon].forEach(tn => {
+    const opt = document.createElement("option");
+    opt.value = tn;
+    opt.textContent = `${tn} ton`;
+    tonSelect.appendChild(opt);
+  });
+  tonSelect.disabled = false;
+}
+
+function popolaModelli() {
+  const col = document.getElementById("colonneInput").value.trim();
+  const grammi = document.getElementById("grammiSelect").value;
+  const unita = parseInt(document.getElementById("unitaSelect").value,10);
+  const ton = parseInt(document.getElementById("tonSelect").value,10);
+
+  const match = intervalli.find(obj => obj.colonne === col);
+  if (!match) return;
+
+  const modSelect = document.getElementById("modelloSelect");
+  modSelect.innerHTML = "<option value=''>Seleziona il modello</option>";
+  modSelect.disabled = true;
+  
+  if (!grammi || !unita || !ton) return;
+
+  const filtered = match.entries.filter(e => 
+    e.grammi===grammi && e.unitaIniezione===unita && e.ton.includes(ton)
+  );
+  const allModels = [...new Set(filtered.map(e => e.modello))];
+  allModels.forEach(m => {
+    const opt = document.createElement("option");
+    opt.value = m;
+    opt.textContent = m;
+    modSelect.appendChild(opt);
+  });
+  modSelect.disabled = false;
+}
+
+// ================================
+// 4) Immagini piccole
+// ================================
+
+function mostraImgChiusura() {
+  const img = document.getElementById("imgChiusura");
+  img.src = "img/treno-stampi.jpg";
+  img.classList.remove("d-none");
+}
+
+function mostraImgIniezione() {
+  const unita = document.getElementById("unitaSelect").value;
+  const img = document.getElementById("imgIniezione");
+  if (unita) {
+    img.src = "img/iniezione.jpg";
+    img.classList.remove("d-none");
+  } else {
+    img.classList.add("d-none");
+    img.src = "";
+  }
+}
+
+function mostraImgTon() {
+  const ton = document.getElementById("tonSelect").value;
+  const img = document.getElementById("imgTon");
+  if (ton) {
+    img.src = "img/ton.jpg";
+    img.classList.remove("d-none");
+  } else {
+    img.classList.add("d-none");
+    img.src = "";
+  }
+}
+
+// ================================
+// 5) Configura -> Riepilogo + immagine finale
+// ================================
+
+function configuraPressa() {
+  const col = document.getElementById("colonneInput").value;
+  const grammi = document.getElementById("grammiSelect").value;
+  const unita = document.getElementById("unitaSelect").value;
+  const ton = document.getElementById("tonSelect").value;
+  const modello = document.getElementById("modelloSelect").value;
+
+  if (!col || !grammi || !unita || !ton || !modello) {
+    alert("Compila tutti i campi per configurare la pressa.");
+    return;
+  }
+
+  // Mostro la riga con riepilogo + immagine finale
+  document.getElementById("finalContainer").classList.remove("d-none");
+
+  // Riepilogo
+  document.getElementById("risultati").innerHTML = `
+    <h4>Configurazione completata</h4>
+    <p><strong>Passaggio colonne:</strong> ${col}</p>
+    <p><strong>Capacità effettiva iniezione:</strong> ${grammi}</p>
+    <p><strong>Unità di iniezione:</strong> ${unita}</p>
+    <p><strong>Tonnellaggio:</strong> ${ton} ton</p>
+    <p><strong>Modello:</strong> ${modello}</p>
+  `;
+
+  mostraImmagineFinale(modello);
+}
+
+function mostraImmagineFinale(modello) {
+  const finalImg = document.getElementById("finalModelImage");
+  const low = modello.toLowerCase();
+  // Esempio: se "sp " => SP.JPG, se "h-he" o "elettryka" => HE.JPG
+  if (low.includes("sp ")) {
+    finalImg.src = "img/SP.JPG";
+  } else if (low.includes("h-he") || low.includes("elettryka")) {
+    finalImg.src = "img/HE.JPG";
+  } else {
+    finalImg.src = "";
+  }
+}
+
+// ================================
+// 6) Azzera
+// ================================
+
+function azzeraFiltri() {
+  document.getElementById("colonneInput").value = "";
+  resetSelects();
+  nascondiIntervalliVicini();
+
+  // Immagini piccole
+  document.getElementById("imgChiusura").classList.add("d-none");
+  document.getElementById("imgChiusura").src = "";
+
+  document.getElementById("imgIniezione").classList.add("d-none");
+  document.getElementById("imgIniezione").src = "";
+
+  document.getElementById("imgTon").classList.add("d-none");
+  document.getElementById("imgTon").src = "";
+
+  // Riepilogo
+  document.getElementById("risultati").innerHTML = "";
+
+  // Row finale
+  document.getElementById("finalContainer").classList.add("d-none");
+  document.getElementById("finalModelImage").src = "";
+}
+
+function resetSelects() {
+  const grammiSelect = document.getElementById("grammiSelect");
+  const unitaSelect = document.getElementById("unitaSelect");
+  const tonSelect = document.getElementById("tonSelect");
+  const modSelect = document.getElementById("modelloSelect");
+
+  grammiSelect.innerHTML = "<option value=''>Seleziona la capacità effettiva iniezione</option>";
+  grammiSelect.disabled = true;
+
+  unitaSelect.innerHTML = "<option value=''>Seleziona un'unità di iniezione</option>";
+  unitaSelect.disabled = true;
+
+  tonSelect.innerHTML = "<option value=''>Seleziona un tonnellaggio</option>";
+  tonSelect.disabled = true;
+
+  modSelect.innerHTML = "<option value=''>Seleziona il modello</option>";
+  modSelect.disabled = true;
+}
+</script>
+</body>
+</html>
